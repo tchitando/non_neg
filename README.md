@@ -6,12 +6,6 @@ Original repo: https://github.com/PKU-ML/non_neg
 
 ---
 
-## What's different from the original repo
-
-Three bugs were found and fixed in `main_eval.py` and `solo/data/classification_dataloader.py`. See [FINDINGS.md](FINDINGS.md) for full details.
-
----
-
 ## Installation
 
 ```bash
