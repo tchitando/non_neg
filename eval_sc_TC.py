@@ -105,11 +105,8 @@ def ccr(features, labels, eps=1e-5):
     return len(scores), D, scores.mean().item(), scores.std().item()
 
 # ── Run ───────────────────────────────────────────────────────────────────────
-for split, train in [("train", True), ("test", False)]:
+for split, train in [("test", False)]:
     print(f"\nExtracting {split} features...")
     feats, labels = extract(make_loader(train))
     active, total, mean, std = ccr(feats, labels)
-    print(f"  Sparsity    : {sparsity(feats):.2f}%")
-    print(f"  Active dims : {active} / {total}")
-    print(f"  CCR mean    : {mean:.2f}%")
-    print(f"  CCR std     : {std:.2f}%")
+    print(f"  CCR / Semantic Consistency: {mean:.2f}%")
