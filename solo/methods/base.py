@@ -26,7 +26,7 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+from solo.utils.lr_scheduler import LinearWarmupCosineAnnealingLR
 from solo.backbones import (
     convnext_base,
     convnext_large,
@@ -257,6 +257,9 @@ class BaseMethod(pl.LightningModule):
         # for performance
         self.no_channel_last = cfg.performance.disable_channel_last
 
+        # PL 2.x: outputs are no longer passed to on_validation_epoch_end
+        self.validation_step_outputs: List[Dict[str, Any]] = []
+
     @staticmethod
     def add_and_assert_specific_cfg(cfg: omegaconf.DictConfig) -> omegaconf.DictConfig:
         """Adds method specific default values/checks for config.
@@ -355,13 +358,17 @@ class BaseMethod(pl.LightningModule):
             return optimizer
 
         if self.scheduler == "warmup_cosine":
+            # PL 2.x: train_dataloader is not yet set at configure_optimizers time;
+            # access via the fit loop data source set during attach_data()
+            _dl = self.trainer.fit_loop._data_source.instance
+            steps_per_epoch = len(_dl) // self.trainer.accumulate_grad_batches
             max_warmup_steps = (
-                self.warmup_epochs * (self.trainer.estimated_stepping_batches / self.max_epochs)
+                self.warmup_epochs * steps_per_epoch
                 if self.scheduler_interval == "step"
                 else self.warmup_epochs
             )
             max_scheduler_steps = (
-                self.trainer.estimated_stepping_batches
+                steps_per_epoch * self.max_epochs
                 if self.scheduler_interval == "step"
                 else self.max_epochs
             )
@@ -397,7 +404,7 @@ class BaseMethod(pl.LightningModule):
 
         return [optimizer], [scheduler]
 
-    def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+    def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
         """
         This improves performance marginally. It should be fine
         since we are not affected by any of the downsides descrited in
@@ -579,17 +586,16 @@ class BaseMethod(pl.LightningModule):
             "val_acc1": out["acc1"],
             "val_acc5": out["acc5"],
         }
+        self.validation_step_outputs.append(metrics)
         return metrics
 
-    def validation_epoch_end(self, outs: List[Dict[str, Any]]):
+    def on_validation_epoch_end(self):
         """Averages the losses and accuracies of all the validation batches.
         This is needed because the last batch can be smaller than the others,
         slightly skewing the metrics.
-
-        Args:
-            outs (List[Dict[str, Any]]): list of outputs of the validation step.
         """
 
+        outs = self.validation_step_outputs
         val_loss = weighted_mean(outs, "val_loss", "batch_size")
         val_acc1 = weighted_mean(outs, "val_acc1", "batch_size")
         val_acc5 = weighted_mean(outs, "val_acc5", "batch_size")
@@ -601,6 +607,7 @@ class BaseMethod(pl.LightningModule):
             log.update({"val_knn_acc1": val_knn_acc1, "val_knn_acc5": val_knn_acc5})
 
         self.log_dict(log, sync_dist=True)
+        self.validation_step_outputs.clear()
 
 
 class BaseMomentumMethod(BaseMethod):
@@ -648,6 +655,9 @@ class BaseMomentumMethod(BaseMethod):
 
         # momentum updater
         self.momentum_updater = MomentumUpdater(cfg.momentum.base_tau, cfg.momentum.final_tau)
+
+        # PL 2.x: momentum outputs collected manually
+        self.momentum_validation_step_outputs: List[Dict[str, Any]] = []
 
     @property
     def learnable_params(self) -> List[Dict[str, Any]]:
@@ -819,7 +829,7 @@ class BaseMomentumMethod(BaseMethod):
             # update tau
             self.momentum_updater.update_tau(
                 cur_step=self.trainer.global_step,
-                max_steps=self.trainer.estimated_stepping_batches,
+                max_steps=self.trainer.max_epochs * self.trainer.num_training_batches,
             )
         self.last_step = self.trainer.global_step
 
@@ -853,10 +863,11 @@ class BaseMomentumMethod(BaseMethod):
                 "momentum_val_acc1": out["acc1"],
                 "momentum_val_acc5": out["acc5"],
             }
+            self.momentum_validation_step_outputs.append(metrics)
 
         return parent_metrics, metrics
 
-    def validation_epoch_end(self, outs: Tuple[List[Dict[str, Any]]]):
+    def on_validation_epoch_end(self):
         """Averages the losses and accuracies of the momentum backbone / classifier for all the
         validation batches. This is needed because the last batch can be smaller than the others,
         slightly skewing the metrics.
@@ -865,11 +876,10 @@ class BaseMomentumMethod(BaseMethod):
                 and the parent.
         """
 
-        parent_outs = [out[0] for out in outs]
-        super().validation_epoch_end(parent_outs)
+        super().on_validation_epoch_end()
 
         if self.momentum_classifier is not None:
-            momentum_outs = [out[1] for out in outs]
+            momentum_outs = self.momentum_validation_step_outputs
 
             val_loss = weighted_mean(momentum_outs, "momentum_val_loss", "batch_size")
             val_acc1 = weighted_mean(momentum_outs, "momentum_val_acc1", "batch_size")
@@ -881,3 +891,4 @@ class BaseMomentumMethod(BaseMethod):
                 "momentum_val_acc5": val_acc5,
             }
             self.log_dict(log, sync_dist=True)
+            self.momentum_validation_step_outputs.clear()

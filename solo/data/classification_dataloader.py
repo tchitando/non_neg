@@ -130,9 +130,26 @@ def prepare_transforms(dataset: str) -> Tuple[nn.Module, nn.Module]:
 
     custom_pipeline = build_custom_pipeline()
 
+    cifar100_pipeline = {
+        "T_train": transforms.Compose(
+            [
+                transforms.RandomResizedCrop(size=32, scale=(0.08, 1.0)),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)),
+            ]
+        ),
+        "T_val": transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762)),
+            ]
+        ),
+    }
+
     pipelines = {
         "cifar10": cifar_pipeline,
-        "cifar100": cifar_pipeline,
+        "cifar100": cifar100_pipeline,
         "stl10": stl_pipeline,
         "imagenet100": imagenet_pipeline,
         "imagenet": imagenet_pipeline,

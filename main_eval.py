@@ -167,7 +167,7 @@ def main(cfg: DictConfig):
 
 
 
-    if 'relu' in cfg.resume_from_checkpoint:
+    if getattr(cfg.method_kwargs, 'non_neg', None) in ('relu', 'rep_relu') or 'relu' in cfg.resume_from_checkpoint:
         val_features = F.relu(val_features)
     # elif 'gelu' in cfg.resume_from_checkpoint:
     #     val_features = F.gelu(val_features)

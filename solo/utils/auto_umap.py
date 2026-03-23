@@ -198,7 +198,7 @@ class AutoUMAP(Callback):
             plt.legend(loc="upper center", bbox_to_anchor=anchor, ncol=math.ceil(num_classes / 10))
             plt.tight_layout()
 
-            if isinstance(trainer.logger, pl.loggers.WandbLogger):
+            if isinstance(trainer.logger, WandbLogger) if 'WandbLogger' in dir() else False:
                 wandb.log(
                     {"validation_umap": wandb.Image(ax)},
                     commit=False,

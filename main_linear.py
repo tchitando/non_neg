@@ -27,8 +27,11 @@ import torch.nn as nn
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
-from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.strategies.ddp import DDPStrategy
+try:
+    from pytorch_lightning.loggers import WandbLogger
+except ImportError:
+    from lightning.pytorch.loggers import WandbLogger
+from pytorch_lightning.strategies import DDPStrategy
 from timm.data.mixup import Mixup
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 
@@ -216,7 +219,11 @@ def main(cfg: DictConfig):
     trainer_kwargs = OmegaConf.to_container(cfg)
     # we only want to pass in valid Trainer args, the rest may be user specific
     valid_kwargs = inspect.signature(Trainer.__init__).parameters
-    trainer_kwargs = {name: trainer_kwargs[name] for name in valid_kwargs if name in trainer_kwargs}
+    trainer_kwargs = {
+        name: trainer_kwargs[name]
+        for name in valid_kwargs
+        if name in trainer_kwargs and trainer_kwargs[name] is not None
+    }
     trainer_kwargs.update(
         {
             "logger": wandb_logger if cfg.wandb.enabled else None,

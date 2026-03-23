@@ -52,7 +52,7 @@ max_epochs: 200
 devices: [0]
 sync_batchnorm: True
 accelerator: "gpu"
-strategy: "ddp"
+strategy: null
 precision: 16
 resume_from_checkpoint: path/to/pretrained/feature/extractor
 

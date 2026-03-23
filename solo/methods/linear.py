@@ -26,7 +26,7 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+from solo.utils.lr_scheduler import LinearWarmupCosineAnnealingLR
 from solo.utils.lars import LARS
 from solo.utils.metrics import accuracy_at_k, weighted_mean
 from solo.methods.metric import disentangle,sparsity,cluster_acc
@@ -443,7 +443,7 @@ class LinearModel(pl.LightningModule):
         return results
 
 
-    def training_epoch_end(self,outs):
+    def on_train_epoch_end(self):
         feats = outs[0]["feats"]
 
         for i in range(len(outs)):
@@ -465,7 +465,7 @@ class LinearModel(pl.LightningModule):
 
     
 
-    def validation_epoch_end(self, outs: List[Dict[str, Any]]):
+    def on_validation_epoch_end(self, outs: List[Dict[str, Any]]):
         """Averages the losses and accuracies of all the validation batches.
         This is needed because the last batch can be smaller than the others,
         slightly skewing the metrics.
