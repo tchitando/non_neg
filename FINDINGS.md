@@ -7,7 +7,7 @@
 
 ## 1. Results
 
-All results use `eval_sc_TC.py`, which implements the same CCR logic as the paper's `main_eval.py` (see Section 3 for verification).
+All results use `eval_sc_TC.py`, which implements the same CCR logic as the paper's `main_eval.py`. SC is computed over the full 10k validation set with no augmentations.
 
 | Checkpoint | CCR (test) |
 |---|---|
@@ -24,8 +24,19 @@ All results use `eval_sc_TC.py`, which implements the same CCR logic as the pape
 
 ## Thoughts
 
-The paper states (Section 5): *"we run 3 random trials and report their mean and standard deviation."* 
-The 8.2%  is the mean over 3 runs. Our single run gets 10.05–10.20%. Should I also run three times? Not sure if this will change much.
+The paper has two evaluation sections. These give completely different results.
+
+Training-time SC (W&B / TensorBoard logs): Using solo/methods/simclr.py (lines 170–195), SC is computed at batch_idx == 0 each epoch on a single batch of 256 × 2 augmented training samples, then logged automatically. 
+
+Run it with 
+
+```bash
+python read_sc_logs.py
+```
+
+Reading values directly from TensorBoard and getting a mean: Mean (all epochs): 11.72% for NCL and 2.83% for SimCLR.
+
+Maybe the 8.2% was their best result?
 
 ---
 
@@ -36,9 +47,17 @@ Please look at:
   - solo/methods/simclr.py — where rep_relu is applied to z (line 154 or close)
 
 ### Eval:
-  - eval_sc_TC.py — your standalone eval script, runs CCR on the test set and prints the result
+  - eval_sc_TC.py — the standalone eval script, runs CCR on the test set and prints the result
   - main_eval.py — the paper's eval script 
 
 ### CCR/ Semantic Consistency:
   - solo/methods/simclr.py lines 170–195:semantic_consistency() function, computed during training and logged to WandB. They compute CCR at two different points
   - main_eval.py lines 184–218: cluster_acc() function, the offline version used for reporting
+
+---
+
+### Differences between the NCL main_eval and my compute_semantic_consistency
+( I used this one for BYI because the BYI repo had no implementation of SC)
+
+Features extracted  -> h['z'] — takes projector output, but wrong projector dims (512→16384→2048 instead of 512→2048→256).
+Should use the full 10,000 samples of the test set instead of the training set, 50 random batches of 512.

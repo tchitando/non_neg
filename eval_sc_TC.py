@@ -2,7 +2,7 @@
 Standalone CCR (Semantic Consistency) evaluation for SimCLR / NCL checkpoints.
 Requirements: torch torchvision
 Usage:
-    python eval_sc_standalone.py --ckpt path/to/checkpoint.ckpt --ncl true|false
+    python eval_sc_TC.py --ckpt path/to/checkpoint.ckpt --ncl true|false
 """
 import argparse
 import torch
