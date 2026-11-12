@@ -1,0 +1,23 @@
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Georgia, serif", "fontSize": "15px", "primaryColor": "#F3F1EC", "primaryBorderColor": "#5A5A5A", "lineColor": "#5A5A5A", "primaryTextColor": "#222222", "clusterBkg": "#FFFFFF", "clusterBorder": "#BBBBBB"}, "flowchart": {"wrappingWidth": 340, "nodeSpacing": 40, "rankSpacing": 45}}}%%
+flowchart TB
+  subgraph S1["1 · Features"]
+    direction LR
+    A["Validation images<br/>OCT, 64 px, 4 classes"] --> B["Frozen encoder + projector<br/>z: 256 units per image<br/><b>NCL</b>: ReLU(z) ≥ 0<br/><b>SimCLR</b>: z signed"]
+    B --> C["Class-balanced subset<br/>n images per class<br/>(n = smallest class)<br/>drawn 5 times, seeds 0–4"]
+  end
+  subgraph S2["2 · Which images switch each unit on"]
+    direction LR
+    D["Keep alive units<br/>(non-zero on at least one image)<br/>L2-normalise each image's vector"] --> E["Unit u fires on image i<br/>if |z_iu| > 10⁻⁵<br/>→ binary matrix: images × units"]
+    E --> F["For each unit, count the<br/>images it fires on, by class<br/>c_CNV, c_DME, c_drusen, c_normal"]
+  end
+  subgraph S3["3 · Score"]
+    direction LR
+    G["SC_u = largest class count ÷ all firings<br/>= share of the unit's top class<br/><i>e.g. 7 CNV, 2 DME, 1 drusen, 0 normal → 70%</i>"] --> H["SC = mean of SC_u over units,<br/>then over the 5 draws (%)<br/>chance = 25%, one class only = 100%"]
+    H --> I["SC* = (SC − ¼) ÷ (1 − ¼)<br/>chance 0, pure 100"]
+    I --> J["Audit (eval_spec.py)<br/>same with shuffled labels → SC*_shuf<br/>SC above shuffle = ¾ (SC* − SC*_shuf)"]
+  end
+  C --> D
+  F --> G
+  K["<b>Why SimCLR sits at 25%</b><br/>its z is dense and signed, so every unit<br/>fires on every image: c = n for every class<br/>→ SC_u = n ÷ 4n = 25% for every unit"]:::note
+  E -.-> K
+  classDef note fill:#FFFFFF,stroke:#B5651D,stroke-dasharray: 4 3,color:#5A3A1A;

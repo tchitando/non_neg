@@ -1,0 +1,75 @@
+OCT-MNIST Reproduction Journal
+================================
+
+Dataset: OCTMnist (MedMNIST), 64x64 grayscale, 4 classes
+Source file: octmnist_64.npz
+
+Split
+-----
+Train: 97,477
+Val:   10,832
+Test:  1,000
+
+Classes
+-------
+0: choroidal neovascularization  —  33,484  (34.4%)
+1: diabetic macular edema        —  10,213  (10.5%)
+2: drusen                        —   7,754   (8.0%)
+3: normal                        —  46,026  (47.2%)
+
+Note: dataset is imbalanced. Normal and CNV dominate (~81% combined).
+
+Image Properties
+----------------
+Size:         64 x 64
+Channels:     1 (grayscale)
+Pixel range:  [6, 191]
+ResNet input: grayscale converted to RGB by triplicating channel (PIL L -> RGB)
+
+Normalisation (computed over training set, 3-channel)
+------------------------------------------------------
+Mean: [0.1894, 0.1894, 0.1894]
+Std:  [0.2071, 0.2071, 0.2071]
+
+Comparison with CIFAR-100
+-------------------------
+Property         CIFAR-100       OCTMnist
+Image size       32x32           64x64
+Channels         3 (RGB)         1 (grayscale -> 3)
+Classes          100             4
+Train samples    50,000          97,477
+Random SC base   1%              25%
+
+Baseline (expected)
+-------------------
+SimCLR CCR: ~25%  (random baseline for 4 classes, equivalent to 1% on CIFAR-100)
+NCL CCR:    > 25% (target: meaningfully above random)
+
+---
+
+2026-03-25
+----------
+
+Linear Probe Results (LARS + warmup cosine, 50 epochs, lr=0.1, batch_size=256)
+Eval script: eval_linear_cifar100.py, eval_linear_octmnist.py
+
+CIFAR-100:
+  Method              Ours    Official ckpt   Paper (2403)
+  SimCLR              56.88%  57.17%          58.6 ± 0.2
+  NCL                 57.38%  58.00%          59.7 ± 0.4
+  Note: all ~1-2% below paper, consistent gap likely due to fp32 vs fp16. NCL > SimCLR ordering holds.
+
+OCT-MNIST (standard ResNet18 backbone, LARS + warmup cosine, 50 epochs):
+  Method    Train acc   Val acc   Test acc
+  SimCLR    95.06%      94.98%    83.80%
+  NCL       94.68%      94.55%    82.70%
+  Note: NCL slightly below SimCLR — unexpected. Small test set (1,000 samples) + class imbalance may affect reliability.
+
+
+----30.03 
+ Looking at simclr.py:178-184, NCL uses the standard NT-Xent (InfoNCE) contrastive loss (simclr_loss_func), logged as train_nce_loss. The only NCL-specific
+  modification is that projector outputs z are passed through rep_relu (reparameterized ReLU) before computing the loss — so the loss is the same InfoNCE
+  objective, just applied to non-negative features.
+
+  There's no separate validation loss tracked — the training signal is entirely the NCE loss on augmented pairs. The validation metric during training is the
+  online linear classifier accuracy (val_acc), not a loss value.

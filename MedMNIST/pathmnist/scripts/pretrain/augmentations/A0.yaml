@@ -1,0 +1,32 @@
+# A0: weak baseline — minimal color jitter, no hue, no blur
+# contrast/saturation added (vs OCT A0) to keep NCL stable on 9-class color data
+- rrc:
+    enabled: True
+    crop_min_scale: 0.08
+    crop_max_scale: 1.0
+  color_jitter:
+    prob: 0.8
+    brightness: 0.4
+    contrast: 0.2
+    saturation: 0.2
+    hue: 0.0
+  grayscale:
+    prob: 0.0
+  gaussian_blur:
+    prob: 0.0
+  solarization:
+    prob: 0.0
+  equalization:
+    prob: 0.0
+  horizontal_flip:
+    prob: 0.5
+  speckle_noise:
+    prob: 0.0
+    std: 0.1
+  contrast_decrease:
+    prob: 0.0
+    factor: 0.8
+  crop_size: 64
+  num_crops: 2
+  mean: [0.7406, 0.5331, 0.7059]
+  std: [0.1292, 0.1765, 0.1381]

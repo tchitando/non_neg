@@ -1,0 +1,19 @@
+--- a/MedMNIST/main_pretrain.py	2026-10-15 16:02:40.140943856 +0000
++++ b/MedMNIST/main_pretrain.py	2026-10-15 16:02:40.157660577 +0000
+@@ -28,6 +28,16 @@
+         sys.argv[_i + 1] = os.path.abspath(sys.argv[_i + 1])
+         break
+ 
++# ImageMagick (used by medmnistc motion blur) must be loaded before torch, as in eval_e6_corruptions.py.
++import ctypes as _ctypes
++for _lib in ("libMagickCore-7.Q16HDRI.so.10", "libMagickWand-7.Q16HDRI.so.10"):
++    _path = os.path.join(sys.prefix, "lib", _lib)
++    if os.path.exists(_path):
++        try:
++            _ctypes.CDLL(_path, mode=_ctypes.RTLD_GLOBAL)
++        except OSError:
++            pass
++
+ import hydra
+ import torch
+ from torch import inf

@@ -1,0 +1,15 @@
+--- a/MedMNIST/pretrain_dataloader.py	2026-10-15 14:12:13.964948857 +0000
++++ b/MedMNIST/pretrain_dataloader.py	2026-10-15 14:12:13.978906960 +0000
+@@ -327,6 +327,12 @@
+             transforms.RandomApply([ContrastDecrease(factor=contrast_cfg.get("factor", 0.8))], p=contrast_cfg.prob)
+         )
+ 
++    # MedMNIST-C based augmentations (motion blur, pixelate, JPEG); all have prob 0 unless switched on.
++    if any((cfg.get(k, None) is not None and cfg.get(k).get("prob", 0) > 0)
++           for k in ("motion_blur", "pixelate", "jpeg_compression")):
++        from MedMNIST.medmnistc_transforms import build_extra_augmentations  # imports medmnistc / ImageMagick only when needed
++        augmentations.extend(build_extra_augmentations(cfg, dataset if isinstance(dataset, str) else "octmnist"))
++
+     augmentations.append(transforms.ToTensor())
+     augmentations.append(transforms.Normalize(mean=mean, std=std))
+ 

@@ -1,0 +1,45 @@
+- rrc:
+    enabled: True
+    crop_min_scale: 0.08
+    crop_max_scale: 1.0
+  color_jitter:
+    prob: 0.8
+    brightness: 0.8
+    contrast: 0.0
+    saturation: 0.0
+    hue: 0.0
+  grayscale:
+    prob: 0.0
+  gaussian_blur:
+    prob: 0.0
+  solarization:
+    prob: 0.0
+  equalization:
+    prob: 0.0
+  horizontal_flip:
+    prob: 0.5
+  speckle_noise:
+    prob: 0.0
+    std: 0.1
+  contrast_decrease:
+    prob: 0.5
+    factor: 0.8
+  blur_custom:
+    prob: 0.0
+    sigma_lo: 0.1
+    sigma_hi: 1.2
+  motion_blur:
+    prob: 0.0
+    radius: 5
+    sigma: 2
+    angle: 15
+  pixelate:
+    prob: 0.5
+    factor: 0.8
+  jpeg_compression:
+    prob: 0.0
+    quality: 70
+  crop_size: 64
+  num_crops: 2
+  mean: [0.1894, 0.1894, 0.1894]
+  std: [0.2071, 0.2071, 0.2071]

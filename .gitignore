@@ -1,0 +1,28 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.ipynb_checkpoints/
+
+# data and checkpoints
+*.npz
+*.ckpt
+*.tgz
+
+# training outputs
+trained_models/
+lightning_logs/
+outputs/
+study/
+wandb/
+
+# large media / personal files
+*.pdf
+*.pptx
+*.docx
+*.png
+*.jpg
+*.jpeg
+
+# macOS
+.DS_Store
